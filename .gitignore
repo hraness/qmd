@@ -12,6 +12,11 @@ texts/
 !README.md
 !CLAUDE.md
 !CHANGELOG.md
+!AGENTS.md
+!WRITING.md
+!STYLE.md
+!.agents/**/*.md
+!kb/**/*.md
 !skills/**/*.md
 !finetune/*.md
 !docs/*.md
