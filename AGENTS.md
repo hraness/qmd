@@ -16,6 +16,7 @@
 - Follow every `CLAUDE.md` prohibition. Never run collection indexing, embedding, or update commands automatically, never modify the SQLite index directly, and never use `bun build --compile`.
 - Follow `WRITING.md` for internal prose and `STYLE.md` for public prose. Keep mandatory rules in the closest `AGENTS.md`, current procedures in `docs/`, executable contracts in types and tests, and pull-based rationale and plans in `kb/`.
 - Apply unreasonably robust programming when agent work is cheap. Model invalid states out of existence, parse foreign values from `unknown`, and pair readable regression examples with property tests for parser, path, ranking, encoding, and round-trip laws.
+- Deliver changes to `main` through a current-head pull request. Keep the stable `Required` CI job green, resolve every review thread, and serialize merges. Human approval stays optional while one regular maintainer would otherwise self-review. Never force-push or bypass the gate.
 - Pin Hraness dependencies to reviewed immutable releases or full commits. Never connect repositories with sibling paths, Git submodules, or coordinated `main` assumptions.
 - Extract a shared package only after two concrete consumers need the same stable interface. Keep shared packages product-neutral and keep indexing, embeddings, ranking, and CLI behavior here.
 - Freeze shared interfaces before parallel lanes begin. Give manifests, lockfiles, generated files, native compatibility pins, and other convergence surfaces one owner while lanes edit disjoint paths.
