@@ -4224,6 +4224,7 @@ describe("Embedding batching", () => {
     // A slow embedder so the short session cap trips between document batches.
     const embedBatchCalls: string[][] = [];
     const slowLlm = {
+      ...createFakeTokenizer(),
       async embed() { return { embedding: [0.1, 0.2, 0.3], model: "fake-embed" }; },
       async embedBatch(texts: string[]) {
         embedBatchCalls.push([...texts]);
@@ -4344,6 +4345,7 @@ describe("Embedding batching", () => {
     const db = store.db;
     let embedCalls = 0;
     const fakeLlm = {
+      ...createFakeTokenizer(),
       async embed(_text: string, _options?: { model?: string }) {
         embedCalls++;
         return embedCalls === 1
@@ -4385,6 +4387,7 @@ describe("Embedding batching", () => {
     const store = await createTestStore();
     const db = store.db;
     const fakeLlm = {
+      ...createFakeTokenizer(),
       async embed(_text: string, _options?: { model?: string }) {
         return { embedding: [0.1, 0.2, 0.3], model: "fake-embed" };
       },
@@ -4450,6 +4453,7 @@ describe("Embedding batching", () => {
     // so vectors_vec is created as float[3].
     const storeModel = "hf:store/embeddinggemma-300M.gguf";
     const storeLlm = {
+      ...createFakeTokenizer(),
       embedModelName: storeModel,
       async embed(_text: string, _options?: { model?: string }) {
         return { embedding: [0.1, 0.2, 0.3], model: storeModel };
