@@ -1,10 +1,7 @@
 name: Nix
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_call:
 
 jobs:
   build-flake:

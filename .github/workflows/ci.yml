@@ -70,3 +70,25 @@ jobs:
           CI: true
           DYLD_LIBRARY_PATH: /opt/homebrew/opt/sqlite/lib
           LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+
+  build-flake:
+    name: Nix
+    uses: ./.github/workflows/nix.yml
+
+  required:
+    name: Required
+    if: always()
+    needs: [test-node, test-bun, build-flake]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every CI job
+        env:
+          TEST_NODE: ${{ needs.test-node.result }}
+          TEST_BUN: ${{ needs.test-bun.result }}
+          BUILD_FLAKE: ${{ needs.build-flake.result }}
+        run: |
+          set -euo pipefail
+          [[ "$TEST_NODE" == success ]]
+          [[ "$TEST_BUN" == success ]]
+          [[ "$BUILD_FLAKE" == success ]]
