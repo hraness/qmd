@@ -21,5 +21,5 @@
 - Extract a shared package only after two concrete consumers need the same stable interface. Keep shared packages product-neutral and keep indexing, embeddings, ranking, and CLI behavior here.
 - Freeze shared interfaces before parallel lanes begin. Give manifests, lockfiles, generated files, native compatibility pins, and other convergence surfaces one owner while lanes edit disjoint paths.
 - Keep QMD-specific skills under `skills/`; `.agents/skills/` contains the portable repository baseline.
-- Do not change package manifests or locks for KB tooling. Run `bunx --bun github:hraness/kb#v0.15.1 refresh --root kb`, `bunx --bun github:hraness/kb#v0.15.1 check --root kb`, and `bunx --bun github:hraness/kb#v0.15.1 agents check --root kb --repo .` directly.
+- Do not change package manifests or locks for KB tooling. Run `bunx --bun github:hraness/kb#v0.15.2 refresh --root kb`, `bunx --bun github:hraness/kb#v0.15.2 check --root kb`, and `bunx --bun github:hraness/kb#v0.15.2 agents check --root kb --repo .` directly.
 - Run the documented Node and Bun test paths and package smoke before handing off source changes.

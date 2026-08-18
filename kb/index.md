@@ -28,8 +28,7 @@ Git history is the maintenance log. Do not add generated backlink sections or a 
 Run the pinned KB tools directly without changing this upstream-derived repository's package manifests:
 
 ```sh
-bunx --bun github:hraness/kb#v0.15.1 refresh --root kb
-bunx --bun github:hraness/kb#v0.15.1 check --root kb
-bunx --bun github:hraness/kb#v0.15.1 agents check --root kb --repo .
+bunx --bun github:hraness/kb#v0.15.2 refresh --root kb
+bunx --bun github:hraness/kb#v0.15.2 check --root kb
+bunx --bun github:hraness/kb#v0.15.2 agents check --root kb --repo .
 ```
-
