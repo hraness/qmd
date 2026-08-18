@@ -1,13 +1,13 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
-#     "torch",
+#     "torch>=2.13.0",
 #     "trl>=0.12.0",
 #     "peft>=0.7.0",
-#     "transformers>=4.45.0",
+#     "transformers>=5.5.0",
 #     "accelerate>=0.24.0",
 #     "huggingface_hub>=0.20.0",
-#     "trackio",
+#     "trackio>=0.35.0",
 #     "nvidia-ml-py",
 #     "datasets",
 #     "bitsandbytes",
