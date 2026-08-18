@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Security
+
+- GitHub Actions workflows now pin every remote action to a reviewed full
+  commit, run with explicit read-only permissions without retained checkout
+  credentials, and reject mutable or dynamic action references. Repository KB
+  checks use the immutable 0.15.2 tool release.
+
 ### Fixed
 
 - Embedding generation and legacy fingerprint adoption now tokenize documents
