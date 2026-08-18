@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
-#     "transformers>=4.45.0",
+#     "transformers>=5.5.0",
 #     "pydantic>=2.0",
 #     "jinja2",
 # ]

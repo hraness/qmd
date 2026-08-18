@@ -3,12 +3,12 @@
 # dependencies = [
 #     "trl>=0.12.0",
 #     "peft>=0.7.0",
-#     "transformers>=4.45.0",
+#     "transformers>=5.5.0",
 #     "accelerate>=0.24.0",
 #     "huggingface_hub>=0.20.0",
 #     "datasets",
 #     "bitsandbytes",
-#     "torch",
+#     "torch>=2.13.0",
 # ]
 # ///
 """

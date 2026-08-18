@@ -2,9 +2,9 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
-#     "transformers>=4.36.0",
+#     "transformers>=5.5.0",
 #     "peft>=0.7.0",
-#     "torch>=2.0.0",
+#     "torch>=2.13.0",
 #     "accelerate>=0.24.0",
 #     "huggingface_hub>=0.20.0",
 #     "sentencepiece>=0.1.99",
