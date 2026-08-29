@@ -1,5 +1,7 @@
 # QMD - Query Markup Documents
 
+[![skills.sh](https://skills.sh/b/hraness/qmd)](https://skills.sh/hraness/qmd)
+
 An on-device search engine for everything you need to remember. Index your markdown notes, meeting transcripts, documentation, and knowledge bases. Search with keywords or natural language. Ideal for your agentic flows.
 
 QMD combines BM25 full-text search, vector semantic search, and LLM re-ranking—all running locally via node-llama-cpp with GGUF models.
