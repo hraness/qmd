@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- The README now links to QMD's repository page on the skills.sh marketplace.
+
 ### Security
 
 - GitHub Actions workflows now pin every remote action to a reviewed full
