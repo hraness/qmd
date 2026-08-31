@@ -23,3 +23,7 @@
 - Keep QMD-specific skills under `skills/`; `.agents/skills/` contains the portable repository baseline.
 - Do not change package manifests or locks for KB tooling. Run `bunx --bun github:hraness/kb#v0.15.2 refresh --root kb`, `bunx --bun github:hraness/kb#v0.15.2 check --root kb`, and `bunx --bun github:hraness/kb#v0.15.2 agents check --root kb --repo .` directly.
 - Run the documented Node and Bun test paths and package smoke before handing off source changes.
+
+<!-- hra-local-efficiency:start -->
+- Preserve useful agent fan-out. Give each expensive focused validation command and external wait one owner; the integration owner reviews that evidence and runs the repository-required aggregate or final gate once after convergence. Reuse evidence only for the exact Git tree, command, lockfiles, toolchain, relevant environment, and validity period, and never to skip a required final integration, merge, release, deployment, or production-verification gate. On Hraness development machines, use `$hra-local-efficiency` and the installed host scheduler for heavyweight top-level commands when available.
+<!-- hra-local-efficiency:end -->
