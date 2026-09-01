@@ -5,6 +5,9 @@
 ### Documentation
 
 - The README now links to QMD's repository page on the skills.sh marketplace.
+- The README now leads with the complete local-retrieval loop, an inspectable
+  query result, search-mode and model costs, data and network boundaries, and
+  guidance for choosing QMD instead of literal search or a full knowledge base.
 
 ### Security
 
