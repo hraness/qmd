@@ -1,102 +1,164 @@
-# QMD - Query Markup Documents
+# QMD: Query Markup Documents
 
 [![skills.sh](https://skills.sh/b/hraness/qmd)](https://skills.sh/hraness/qmd)
 
-An on-device search engine for everything you need to remember. Index your markdown notes, meeting transcripts, documentation, and knowledge bases. Search with keywords or natural language. Ideal for your agentic flows.
+Search local Markdown by exact wording, meaning, or both. QMD returns ranked
+passages with collection paths and content-derived IDs that a terminal, script,
+application, or agent can retrieve again.
 
-QMD combines BM25 full-text search, vector semantic search, and LLM re-ranking—all running locally via node-llama-cpp with GGUF models.
+QMD builds a local SQLite index, combines BM25 full-text search with vector
+search, and can expand and rerank a question with local GGUF models. The source
+files remain the canonical corpus.
 
-```mermaid
-flowchart LR
-  Q[User Query] --> X[Query Expansion]
-  Q --> FTS[BM25 Search]
-  Q --> VS[Vector Search]
-  X --> HYDE[HyDE]
-  X --> VEC[Vec dense sentences]
-  X --> LEX[Lex BM25 keywords]
-  HYDE --> VS
-  VEC --> VS
-  LEX --> FTS
-  VS --> RRF[Reciprocal Rank Fusion]
-  FTS --> RRF
-  RRF --> RR[LLM Reranker]
-  RR --> OUT[Final ranked results]
-```
+## Install QMD
 
-Typed expansions are routed exclusively: `lex` → BM25/FTS, `vec` and `hyde` → vector search. The original query is sent to both backends, then fused with RRF and reranked.
-
-You can read more about QMD's progress in the [CHANGELOG](CHANGELOG.md).
-
-## Quick Start
+QMD requires Node.js 22 or later. Bun 1.0 or later is also supported. On macOS,
+install Homebrew SQLite first so QMD can load the vector extension.
 
 ```sh
-# Install globally (Node or Bun)
+brew install sqlite             # macOS only
 npm install -g @tobilu/qmd
 # or
 bun install -g @tobilu/qmd
+```
 
-# Or run directly
-npx @tobilu/qmd ...
-bunx @tobilu/qmd ...
+You can also run the package without a global install:
 
-# Create collections for your notes, docs, and meeting transcripts
+```sh
+npx @tobilu/qmd --help
+bunx @tobilu/qmd --help
+```
+
+## Turn a Markdown corpus into a retrievable answer
+
+The first useful loop has four parts: name a corpus, describe it, embed it, and
+ask for the passage you need.
+
+### Index the corpus
+
+```sh
 qmd collection add ~/notes --name notes
 qmd collection add ~/Documents/meetings --name meetings
 qmd collection add ~/work/docs --name docs
 
-# Add context to help with search results, each piece of context will be returned when matching sub documents are returned. This works as a tree. This is the key feature of QMD as it allows LLMs to make much better contextual choices when selecting documents. Don't sleep on it!
 qmd context add qmd://notes "Personal notes and ideas"
-qmd context add qmd://meetings "Meeting transcripts and notes"
+qmd context add qmd://meetings "Meeting transcripts and decisions"
 qmd context add qmd://docs "Work documentation"
 
-# Generate embeddings for semantic search
 qmd embed
-
-# Search across everything
-qmd search "project timeline"           # Fast keyword search
-qmd vsearch "how to deploy"             # Semantic search
-qmd query "quarterly planning process"  # Hybrid + reranking (best quality)
-
-# Get a specific document
-qmd get "meetings/2024-01-15.md"
-
-# Get a document by docid (shown in search results)
-qmd get "#abc123"
-
-# Get multiple documents by glob pattern
-qmd multi-get "journals/2025-05*.md"
-
-# Search within a specific collection
-qmd search "API" -c notes
-
-# Export all matches for an agent
-qmd search "API" --all --files --min-score 0.3
 ```
 
-### Using with AI Agents
+`collection add` builds the full-text index. `qmd embed` adds vector chunks for
+semantic and hybrid search. On first use, QMD downloads the default GGUF models
+from Hugging Face and caches them in `~/.cache/qmd/models/`.
 
-QMD's `--json` and `--files` output formats are designed for agentic workflows:
+### Ask the question
 
 ```sh
-# Get structured results for an LLM
-qmd search "authentication" --json -n 10
-
-# List all relevant files above a threshold
-qmd query "error handling" --all --files --min-score 0.4
-
-# Retrieve full document content
-qmd get "docs/api-reference.md" --full
+qmd query "how does reranking preserve exact matches?" --json --explain
 ```
 
-### MCP Server
+The abbreviated JSON shape below uses illustrative values. The CLI, MCP server,
+and SDK return the same identifiers:
 
-Although the tool works perfectly fine when you just tell your agent to use it on the command line, it also exposes an MCP (Model Context Protocol) server for tighter integration.
+```json
+{
+  "docid": "#6c90f0",
+  "score": 0.89,
+  "file": "qmd://qmd/README.md",
+  "explain": {
+    "ftsScores": [0.892, 0.907],
+    "vectorScores": [0.540, 0.484],
+    "rrf": {
+      "rank": 1,
+      "baseScore": 0.123,
+      "topRankBonus": 0.05
+    }
+  }
+}
+```
+
+The score values depend on the corpus and query. The `qmd://` path addresses the
+indexed file. The `docid` identifies that version of its content, so it changes
+when the content changes. Use a returned value to retrieve the document or a
+bounded line range:
+
+```sh
+qmd get "qmd://qmd/README.md"
+qmd get "#6c90f0:120:40"
+```
+
+## Choose how much search work to run
+
+QMD exposes the retrieval stages separately, so a caller can choose latency,
+model use, and ranking depth for each job.
+
+| Job | Command | Work performed |
+|-----|---------|----------------|
+| Find exact terms | `qmd search "auth middleware"` | SQLite FTS5 and BM25. No LLM is loaded. |
+| Find related language | `qmd vsearch "how users log in"` | Vector similarity with the embedding model. |
+| Return the strongest ranked passages | `qmd query "authentication flow"` | Query expansion, BM25, vector search, reciprocal-rank fusion, and reranking. |
+| Inspect a known result | `qmd get "#6c90f0:120:40"` | Direct retrieval by content-derived ID and line range. |
+
+For repeated hybrid queries, `qmd mcp --http --daemon` keeps the models loaded
+between requests. Use `qmd bench` with known-relevant files to measure
+precision@k, recall, mean reciprocal rank, and F1 on your own corpus instead of
+assuming one search mode is always best.
+
+## Know what stays local and what can cross the network
+
+| Surface | Boundary |
+|---------|----------|
+| Source corpus | QMD's indexer reads the matching files without rewriting them. A configured update hook runs separately before indexing. |
+| Index | Parsed documents, chunks, vectors, and cached LLM results live in `~/.cache/qmd/index.sqlite` by default. |
+| Search and ranking | BM25, embeddings, query expansion, and reranking run on the local machine through SQLite and `node-llama-cpp`. |
+| Model acquisition | Missing default models are downloaded from Hugging Face, then cached locally. The three defaults total about 2 GB. |
+| Update hooks | A collection can run a configured shell command before re-indexing. Project-local hooks, external paths, and custom models require explicit trust. |
+| HTTP server | The server binds to loopback by default and validates `Origin` and `Host`. Its endpoints are unauthenticated, so add your own authentication before exposing it beyond the machine. |
+
+The default models are:
+
+| Role | Model | Approximate size |
+|------|-------|------------------|
+| Embedding | `embeddinggemma-300M-Q8_0` | 300 MB |
+| Reranking | `qwen3-reranker-0.6b-q8_0` | 640 MB |
+| Query expansion | `qmd-query-expansion-1.7B-q4_k_m` | 1.1 GB |
+
+## Choose QMD when retrieval is the missing layer
+
+| Need | Start with |
+|------|------------|
+| Find a literal string in one working tree | `rg` or `grep`. There is no index or model startup. |
+| Rank exact matches across several Markdown collections | `qmd search`. It adds stable collection paths, context, and structured output without an LLM. |
+| Find passages when the question and source use different words | `qmd vsearch` or `qmd query`. Use `query` when fusion and reranking justify the added model work. |
+| Author, connect, review, and publish a curated body of knowledge | A knowledge-base system. QMD retrieves existing files but does not replace editorial workflow, backlinks, provenance, or publishing. |
+
+## Use the same index through four interfaces
+
+| Interface | Start here | Best fit |
+|-----------|------------|----------|
+| CLI | `qmd query "error handling" --json` | People, shell scripts, and agents that can run commands. |
+| MCP over stdio | `qmd mcp` | One local MCP client that owns the subprocess. |
+| MCP or JSON over HTTP | `qmd mcp --http` | Several local clients sharing one warm model process. |
+| TypeScript SDK | `import { createStore } from '@tobilu/qmd'` | Applications that need direct lifecycle and search control. |
+
+Machine-readable output is available as JSON, CSV, Markdown, XML, or a file
+list. `qmd get` and `qmd multi-get` return bounded source content after search.
+
+The sections below document each interface and the complete configuration.
+Release history is in the [changelog](CHANGELOG.md).
+
+## MCP server
+
+Use the MCP server when a client needs typed search and retrieval tools instead
+of shell commands.
 
 **Tools exposed:**
-- `query` — Search with typed sub-queries (`lex`/`vec`/`hyde`), combined via RRF + reranking
-- `get` — Retrieve a document by path or docid (with fuzzy matching suggestions)
-- `multi_get` — Batch retrieve by glob pattern, comma-separated list, or docids
-- `status` — Index health and collection info
+
+- `query`: Search with typed sub-queries (`lex`, `vec`, and `hyde`), then combine them with RRF and reranking.
+- `get`: Retrieve a document by path or docid, with fuzzy matching suggestions.
+- `multi_get`: Retrieve a batch by glob pattern, comma-separated list, or docids.
+- `status`: Inspect index health and collection information.
 
 **Claude Desktop configuration** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
@@ -111,7 +173,7 @@ Although the tool works perfectly fine when you just tell your agent to use it o
 }
 ```
 
-**Claude Code** — Install the plugin (recommended):
+**Claude Code plugin:**
 
 ```bash
 claude plugin marketplace add tobi/qmd
@@ -131,7 +193,7 @@ Or configure MCP manually in `~/.claude/settings.json`:
 }
 ```
 
-#### HTTP Transport
+### HTTP transport
 
 By default, QMD's MCP server uses stdio (launched as a subprocess by each client). For a shared, long-lived server that avoids repeated model loading, use the HTTP transport:
 
@@ -148,26 +210,26 @@ qmd status                        # shows "MCP: running (PID ...)" when active
 ```
 
 The server binds to `localhost` by default. Pass `--host` (or set the `QMD_HOST`
-environment variable) to override — `--host 0.0.0.0` is useful when the server
+environment variable) to override it. `--host 0.0.0.0` is useful when the server
 runs in a container and a liveness probe connects from a non-loopback address.
 
 The HTTP server exposes two endpoints:
-- `POST /mcp` — MCP Streamable HTTP (JSON responses, stateless)
-- `POST /query` (alias `/search`) — structured search without the MCP protocol
-- `GET /health` — liveness check with uptime
+- `POST /mcp`: MCP Streamable HTTP with stateless JSON responses.
+- `POST /query` (alias `/search`): Structured search without the MCP protocol.
+- `GET /health`: Liveness check with uptime.
 
 
-##### Origin and Host validation
+#### Origin and host validation
 
 Every request is screened before routing: a request carrying an `Origin` header
 that does not name a loopback address is rejected with `403`, as is a `Host`
-header naming something other than the address the server is bound to. This is
-what stops a web page you visit from reading your index through DNS rebinding —
+header naming something other than the address the server is bound to. This
+stops a web page you visit from reading your index through DNS rebinding. A
 loopback binding alone does not, since the browser makes the request from your
 own machine.
 
-Requests without an `Origin` header — curl, MCP clients, editors — are
-unaffected, which covers every normal local client.
+Requests without an `Origin` header, including curl, MCP clients, and editors,
+are unaffected.
 
 | Variable | Effect |
 |----------|--------|
@@ -176,14 +238,14 @@ unaffected, which covers every normal local client.
 
 `--host 0.0.0.0` cannot know which `Host` values are legitimate, so it skips the
 host check and warns at startup. Set `QMD_ALLOWED_HOSTS` to re-enable it, and
-remember the endpoints are unauthenticated — put your own auth in front of a
+remember the endpoints are unauthenticated. Put your own authentication in front of a
 server that is reachable off-host.
 
 LLM models stay loaded in VRAM across requests. Embedding/reranking contexts are disposed after 5 min idle and transparently recreated on the next request (~1s penalty, models remain loaded).
 
 Point any MCP client at `http://localhost:8181/mcp` to connect.
 
-#### MCP Tool Parameters
+### MCP tool parameters
 
 | Tool | Parameter | Type | Notes |
 |------|-----------|------|-------|
@@ -207,17 +269,17 @@ Unknown parameters are silently ignored (not rejected) — double-check names if
 results seem unscoped. The HTTP `/query` and `/search` endpoints return
 `qmd://collection/path` URIs in the `file` field, matching the CLI and MCP output.
 
-### SDK / Library Usage
+## TypeScript SDK
 
 Use QMD as a library in your own Node.js or Bun applications.
 
-#### Installation
+### Install the SDK
 
 ```sh
 npm install @tobilu/qmd
 ```
 
-#### Quick Start
+### Create a store
 
 ```typescript
 import { createStore } from '@tobilu/qmd'
@@ -237,7 +299,7 @@ console.log(results.map(r => `${r.title} (${Math.round(r.score * 100)}%)`))
 await store.close()
 ```
 
-#### Store Creation
+### Store creation
 
 `createStore()` accepts three modes:
 
@@ -265,7 +327,7 @@ const store2 = await createStore({
 const store3 = await createStore({ dbPath: './index.sqlite' })
 ```
 
-#### Search
+### Search
 
 The unified `search()` method handles both simple queries and pre-expanded structured queries:
 
@@ -310,7 +372,7 @@ const expanded = await store.expandQuery("auth flow", { intent: "user login" })
 const results4 = await store.search({ queries: expanded })
 ```
 
-#### Retrieval
+### Retrieval
 
 ```typescript
 // Get a document by path or docid
@@ -333,7 +395,7 @@ const { docs, errors } = await store.multiGet("docs/**/*.md", {
 })
 ```
 
-#### Collections
+### Collections
 
 ```typescript
 // Add a collection
@@ -355,7 +417,7 @@ await store.removeCollection("myapp")
 await store.renameCollection("old-name", "new-name")
 ```
 
-#### Context
+### Context
 
 Context adds descriptive metadata that improves search relevance and is returned alongside results:
 
@@ -375,7 +437,7 @@ await store.removeContext("docs", "/api")
 await store.setGlobalContext(undefined)  // clear global
 ```
 
-#### Indexing
+### Indexing
 
 ```typescript
 // Re-index collections by scanning the filesystem
@@ -397,7 +459,7 @@ const embedResult = await store.embed({
 })
 ```
 
-#### Types
+### Types
 
 Key types exported for SDK consumers:
 
@@ -435,7 +497,7 @@ import {
 } from '@tobilu/qmd'
 ```
 
-#### Lifecycle
+### Lifecycle
 
 ```typescript
 // Close the store — disposes LLM models and DB connection
