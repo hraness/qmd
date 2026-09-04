@@ -183,3 +183,7 @@ Key points:
 - The release script renames `[Unreleased]` → `[X.Y.Z] - date` at release time
 - Credit external PRs with `#NNN (thanks @username)`
 - GitHub releases roll up the full minor series (e.g. 1.2.0 through 1.2.3)
+
+<!-- hra-local-efficiency:claude-import:start -->
+@AGENTS.md
+<!-- hra-local-efficiency:claude-import:end -->
