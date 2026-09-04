@@ -1211,7 +1211,12 @@ describe("MCP HTTP Transport — 2026-07-28 protocol", () => {
   });
 
   async function postMcp(
-    body: object,
+    body: {
+      jsonrpc: string;
+      id?: number | string;
+      method: string;
+      params?: Record<string, unknown>;
+    },
     headers: Record<string, string>,
   ): Promise<{ status: number; json: any; rawHeaders: Headers }> {
     const res = await fetch(`${baseUrl}/mcp`, {

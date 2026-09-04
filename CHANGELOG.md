@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added Oxlint lint fence.
+
 ### Fixed
 
 - Embedding generation and legacy fingerprint adoption now tokenize documents
