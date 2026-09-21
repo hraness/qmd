@@ -21,7 +21,7 @@
 - Extract a shared package only after two concrete consumers need the same stable interface. Keep shared packages product-neutral and keep indexing, embeddings, ranking, and CLI behavior here.
 - Freeze shared interfaces before parallel lanes begin. Give manifests, lockfiles, generated files, native compatibility pins, and other convergence surfaces one owner while lanes edit disjoint paths.
 - Keep QMD-specific skills under `skills/`; `.agents/skills/` contains the portable repository baseline.
-- Do not change package manifests or locks for KB tooling. Run `bunx --bun github:hraness/kb#v0.15.2 refresh --root kb`, `bunx --bun github:hraness/kb#v0.15.2 check --root kb`, and `bunx --bun github:hraness/kb#v0.15.2 agents check --root kb --repo .` directly.
+- Install the pinned Wordcell search tool through the repository manifest and lockfiles. For existing KB maintenance, run `bunx --bun github:hraness/kb#v0.15.2 refresh --root kb`, `bunx --bun github:hraness/kb#v0.15.2 check --root kb`, and `bunx --bun github:hraness/kb#v0.15.2 agents check --root kb --repo .` directly.
 - Run the documented Node and Bun test paths and package smoke before handing off source changes.
 
 <!-- oompa-local-efficiency:start -->
@@ -50,7 +50,9 @@
 
 ## Wordcell search
 
-- From the repository root, use `bunx --bun --package https://github.com/hraness/wordcell/releases/download/v0.22.0/hraness-wordcell-0.22.0.tgz wordcell search --root kb --mode exact --rerank typesafe --rerank-limit 25 "query" --json` for ordinary searches of this public `kb/` vault. Wordcell 0.22.0 retrieves local exact candidates, then asks TypeSafe to rerank at most 25 candidates. Read the returned Markdown and its linked sources before relying on a result.
+- Run `bun install --frozen-lockfile` during repository setup to install the pinned Wordcell 0.22.0 development dependency. Search scripts use the local executable and never install packages at query time.
+
+- From the repository root, use `bun run kb:search "query" --json` for ordinary searches of this public `kb/` vault. Wordcell 0.22.0 retrieves local exact candidates, then asks TypeSafe to rerank at most 25 candidates. Read the returned Markdown and its linked sources before relying on a result.
 - Hosted ranking sends the query and each candidate's identifier, title, vault-relative path, and at most 512 UTF-8 bytes of snippet text to TypeSafe, with provider input-token charges. Keep confidential queries and unpublished or private notes on the local path.
-- Use `bunx --bun --package https://github.com/hraness/wordcell/releases/download/v0.22.0/hraness-wordcell-0.22.0.tgz wordcell search --root kb --mode exact "query" --json` for local-only search. Keep credentials outside the repository: `TYPESAFE_API_KEY`, `TYPESAFE_API_KEY_FILE`, or the owner-only `~/.config/wordcell/typesafe-api-key` file.
+- Use `bun run kb:search:local "query" --json` for local-only search. Keep credentials outside the repository: `TYPESAFE_API_KEY`, `TYPESAFE_API_KEY_FILE`, or the owner-only `~/.config/wordcell/typesafe-api-key` file.
 - Inspect the `rerank` lane status and its structured receipt for attempted requests, elapsed time, known usage, and incomplete usage. Missing credentials or provider failures retain baseline ordering; a successful exit does not prove reranking occurred. Treat ranking probabilities as navigation signals, not evidence of truth.

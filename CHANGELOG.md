@@ -18,6 +18,9 @@
 
 ### Fixed
 
+- Repository KB searches use the locked local Wordcell development dependency,
+  removing package installation from the first query after repository setup.
+
 - Embedding generation and legacy fingerprint adoption now tokenize documents
   with the store-selected embedding model instead of the global default. This
   keeps chunk boundaries aligned with the model that creates and verifies the

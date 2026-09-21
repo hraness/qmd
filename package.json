@@ -43,7 +43,9 @@
     "rerank": "tsx src/cli/qmd.ts rerank",
     "inspector": "npx @modelcontextprotocol/inspector tsx src/cli/qmd.ts mcp",
     "release": "./scripts/release.sh",
-    "smoke:package-grammars": "node scripts/check-package-grammars.mjs"
+    "smoke:package-grammars": "node scripts/check-package-grammars.mjs",
+    "kb:search": "wordcell search --root kb --mode exact --rerank typesafe --rerank-limit 25",
+    "kb:search:local": "wordcell search --root kb --mode exact"
   },
   "publishConfig": {
     "access": "public"
@@ -81,7 +83,8 @@
   "devDependencies": {
     "@types/better-sqlite3": "7.6.13",
     "tsx": "4.23.12",
-    "vitest": "3.2.7"
+    "vitest": "3.2.7",
+    "@hraness/wordcell": "https://github.com/hraness/wordcell/releases/download/v0.22.0/hraness-wordcell-0.22.0.tgz"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
