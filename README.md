@@ -1,6 +1,6 @@
 # QMD: Query Markup Documents
 
-[![skills.sh](https://skills.sh/b/hraness/qmd)](https://skills.sh/hraness/qmd)
+> This is the Hraness working fork of [tobi/qmd](https://github.com/tobi/qmd). Install QMD and report issues upstream.
 
 Search local Markdown by exact wording, meaning, or both. QMD returns ranked
 passages with collection paths and content-derived IDs that a terminal, script,
