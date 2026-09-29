@@ -157,6 +157,7 @@ describe("GitHub workflow action supply chain", () => {
       "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
       "cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24",
       "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6",
+      "pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413",
     ]);
     expect(() => assertWorkflowCredentialBoundary(workflows)).not.toThrow();
   });
