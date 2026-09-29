@@ -10,10 +10,12 @@ jobs:
   build-flake:
     name: Build flake (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # The caller's event: pull requests build on Linux, main pushes add macOS.
+        os: ${{ fromJSON(github.event_name == 'push' && '["ubuntu-latest","macos-latest"]' || '["ubuntu-latest"]') }}
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
