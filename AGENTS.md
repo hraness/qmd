@@ -13,6 +13,7 @@
 # Guidelines
 
 - Keep this Hraness fork thin and upstream-rebase-friendly. Preserve the public `@tobilu/qmd` identity, upstream build wrapper, Node and Bun test paths, pnpm and Bun lockfiles, and Nix and Python boundaries.
+- Follow [the dependency sync procedure](docs/DEPENDENCIES.md) after dependency changes or upstream syncs; regenerate and review both lockfiles before the frozen CI installs.
 - Follow every `CLAUDE.md` prohibition. Never run collection indexing, embedding, or update commands automatically, never modify the SQLite index directly, and never use `bun build --compile`.
 - Follow `WRITING.md` for internal prose and `STYLE.md` for public prose. Keep mandatory rules in the closest `AGENTS.md`, current procedures in `docs/`, executable contracts in types and tests, and pull-based rationale and plans in `kb/`.
 - Apply unreasonably robust programming when agent work is cheap. Model invalid states out of existence, parse foreign values from `unknown`, and pair readable regression examples with property tests for parser, path, ranking, encoding, and round-trip laws.

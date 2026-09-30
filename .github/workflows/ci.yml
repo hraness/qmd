@@ -35,6 +35,22 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.34.6
+          run_install: false
+
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore locked Node dependencies
+        id: pnpm-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-10.34.6-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Install SQLite (Ubuntu)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
@@ -43,10 +59,18 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install sqlite
 
-      - run: npm install
+      - name: Install locked Node dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Save the pnpm store from main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.pnpm-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-10.34.6-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Tests
-        run: npx vitest run --reporter=verbose --testTimeout 60000 test/
+        run: pnpm exec vitest run --reporter=verbose --testTimeout 60000 test/
         env:
           CI: true
 
