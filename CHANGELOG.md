@@ -18,6 +18,8 @@
 
 ### Fixed
 
+- Node CI installs from `pnpm-lock.yaml` with pnpm 10.34.6 and reuses the
+  matching package store. Pull requests only restore caches; main saves them.
 - Embedding generation and legacy fingerprint adoption now tokenize documents
   with the store-selected embedding model instead of the global default. This
   keeps chunk boundaries aligned with the model that creates and verifies the

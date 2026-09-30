@@ -151,12 +151,15 @@ describe("GitHub workflow action supply chain", () => {
   test("pins every semantic remote action reference to a full commit", () => {
     const workflows = repositoryWorkflows();
     expect(semanticActionReferences(workflows)).toEqual([
+      "actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+      "actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
       "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
       "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
       "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
       "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
       "cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24",
       "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6",
+      "pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
     ]);
     expect(() => assertWorkflowCredentialBoundary(workflows)).not.toThrow();
   });
