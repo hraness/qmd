@@ -9,6 +9,8 @@
 
 ### Documentation
 
+- Document installed local Wordcell searches for the repository KB without changing package dependencies (#24).
+
 - The README now links to QMD's repository page on the skills.sh marketplace.
 - The README now leads with the complete local-retrieval loop, an inspectable
   query result, search-mode and model costs, data and network boundaries, and
