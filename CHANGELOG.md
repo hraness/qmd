@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Maintenance
+
+- Upgrade Vitest to 4.1.11 with matching Node and Bun lockfiles (#18).
+- Upgrade the finetuning environment's AnyIO lock to 4.14.2 (#23).
+
 ### Documentation
 
 - The README now links to QMD's repository page on the skills.sh marketplace.
