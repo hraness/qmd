@@ -31,41 +31,45 @@ bunx @tobilu/qmd --help
 
 ## Turn a Markdown corpus into a retrievable answer
 
-The first useful loop has four parts: name a corpus, describe it, embed it, and
-ask for the passage you need.
+Start with a small corpus you can inspect. Keyword search needs no model
+download; embedding and hybrid search are optional next steps.
 
 ### Index the corpus
 
 ```sh
-qmd collection add ~/notes --name notes
-qmd collection add ~/Documents/meetings --name meetings
-qmd collection add ~/work/docs --name docs
-
-qmd context add qmd://notes "Personal notes and ideas"
-qmd context add qmd://meetings "Meeting transcripts and decisions"
-qmd context add qmd://docs "Work documentation"
-
-qmd embed
+sample_dir=$(mktemp -d)
+printf '# Launch checklist\n\nRun the smoke tests before deployment.\n' > "$sample_dir/launch.md"
+qmd collection add "$sample_dir" --name first-result
+qmd context add qmd://first-result "A sample launch checklist"
+qmd search "deployment" -c first-result --json
+qmd get "qmd://first-result/launch.md"
 ```
 
-`collection add` builds the full-text index. `qmd embed` adds vector chunks for
-semantic and hybrid search. On first use, QMD downloads the default GGUF models
-from Hugging Face and caches them in `~/.cache/qmd/models/`.
+Use an unused collection name; if `first-result` already exists, choose another
+name in every command. `collection add` builds the full-text index. The search
+returns `qmd://first-result/launch.md` and a content-derived `docid`; `get` prints
+the checklist, including “Run the smoke tests before deployment.” Keep the sample
+directory while the collection is in use. For your own corpus, replace
+`"$sample_dir"` with an existing Markdown directory.
+
+To add semantic and hybrid search, run `qmd embed`, then the question below.
+Embedding adds vector chunks. Model-backed commands download missing GGUF models
+from Hugging Face and cache them in `~/.cache/qmd/models/`.
 
 ### Ask the question
 
 ```sh
-qmd query "how does reranking preserve exact matches?" --json --explain
+qmd query "what should I run before deployment?" -c first-result --json --explain
 ```
 
-The abbreviated JSON shape below uses illustrative values. The CLI, MCP server,
-and SDK return the same identifiers:
+The abbreviated JSON shape below uses illustrative values, including the docid.
+The CLI, MCP server, and SDK return the same identifiers:
 
 ```json
 {
   "docid": "#6c90f0",
   "score": 0.89,
-  "file": "qmd://qmd/README.md",
+  "file": "qmd://first-result/launch.md",
   "explain": {
     "ftsScores": [0.892, 0.907],
     "vectorScores": [0.540, 0.484],
@@ -84,8 +88,7 @@ when the content changes. Use a returned value to retrieve the document or a
 bounded line range:
 
 ```sh
-qmd get "qmd://qmd/README.md"
-qmd get "#6c90f0:120:40"
+qmd get "qmd://first-result/launch.md:1:10"
 ```
 
 ## Choose how much search work to run
