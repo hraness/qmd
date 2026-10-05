@@ -11,7 +11,7 @@ import { existsSync, lstatSync, readdirSync, readFileSync, symlinkSync, writeFil
 import { tmpdir } from "os";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { spawn } from "child_process";
+import { spawn, execFileSync } from "child_process";
 import { setTimeout as sleep } from "timers/promises";
 import { buildEditorUri, termLink, resolveEmbedModelForCli } from "../src/cli/qmd.ts";
 import { openDatabase } from "../src/db.ts";
@@ -2582,6 +2582,17 @@ describe("mcp http daemon", () => {
           const pid = parseInt(readFileSync(join(logDir, f), "utf-8").trim());
           process.kill(pid, 0);
           console.log(`--- ${f}: pid ${pid} still alive ---`);
+          // Report the child's real command line and open files — distinguishes
+          // a wedged store open from a recycled PID pretending to be a daemon.
+          try {
+            console.log(execFileSync("ps", ["-o", "pid,ppid,stat,etime,args", "-p", String(pid)], { encoding: "utf-8" }));
+          } catch { /* ps unavailable */ }
+          try {
+            const filesOut = process.platform === "linux"
+              ? execFileSync("sh", ["-c", `ls -l /proc/${pid}/fd 2>/dev/null | head -30; cat /proc/${pid}/net/tcp 2>/dev/null | awk 'NR>1 && $4=="0A" {print "LISTEN " $2}'`], { encoding: "utf-8" })
+              : execFileSync("lsof", ["-nP", "-p", String(pid)], { encoding: "utf-8" }).split("\n").filter(l => l.includes("LISTEN") || l.includes("sqlite") || l.includes("COMMAND")).join("\n");
+            console.log(filesOut);
+          } catch { /* lsof/fd dump unavailable */ }
         } catch { console.log(`--- ${f}: pid dead ---`); }
       }
       for (const f of files.filter(f => f.startsWith("mcp") && f.endsWith(".log"))) {
