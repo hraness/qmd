@@ -17,7 +17,7 @@ import picomatch from "picomatch";
 import { createHash } from "crypto";
 import { readFileSync, realpathSync, statSync, mkdirSync } from "node:fs";
 // Note: node:path resolve is not imported — we export our own cross-platform resolve()
-import fastGlob from "fast-glob";
+import { glob as fastGlob } from "tinyglobby";
 import { qmdHomedir } from "./paths.js";
 import {
   LlamaCpp,
@@ -48,10 +48,10 @@ export const DEFAULT_QUERY_MODEL = DEFAULT_GENERATE_MODEL_URI;
 export const DEFAULT_GLOB = "**/*.md";
 
 /**
- * Split a collection glob mask into fast-glob patterns.
+ * Split a collection glob mask into tinyglobby patterns.
  *
  * `--mask "a.md,*.txt"` is a comma-separated union (issue #557), but
- * fast-glob treats a comma outside `{...}` as a literal character, so
+ * tinyglobby treats a comma outside `{...}` as a literal character, so
  * the joined string matches nothing. Brace form `{a.md,*.txt}` is
  * already valid glob syntax and is left intact.
  *
@@ -89,6 +89,34 @@ export function splitGlobMask(mask: string): string[] {
   const trimmed = current.trim();
   if (trimmed) parts.push(trimmed);
   return parts.length > 0 ? parts : [mask];
+}
+
+/**
+ * Expand a collection glob mask under `cwd`. Absolute patterns are globbed
+ * without a base directory and returned as absolute paths so callers can
+ * detect and reject out-of-collection matches; tinyglobby anchors every
+ * pattern to `cwd`, unlike the engine this replaces.
+ */
+export async function globMaskFiles(mask: string, cwd: string, ignore: string[]): Promise<string[]> {
+  const isAbs = (p: string) => p.startsWith("/") || /^[A-Za-z]:[\\/]/.test(p) || p.startsWith("\\\\");
+  const hasMagic = (p: string) => /[*?[\]{}()!+@]/.test(p);
+  const patterns = splitGlobMask(mask);
+  const ignored = ignore.length ? picomatch(ignore, { dot: true }) : () => false;
+  const files = await fastGlob(patterns.filter(p => !isAbs(p)), {
+    cwd, onlyFiles: true, followSymbolicLinks: false, dot: false, ignore,
+  });
+  for (const p of patterns.filter(isAbs)) {
+    if (hasMagic(p)) {
+      files.push(...await fastGlob(p, {
+        absolute: true, onlyFiles: true, followSymbolicLinks: true, dot: false, ignore,
+      }));
+    } else {
+      try {
+        if (statSync(p).isFile() && !ignored(p)) files.push(p);
+      } catch { /* unreadable paths surface as no match */ }
+    }
+  }
+  return files;
 }
 
 export const DEFAULT_MULTI_GET_MAX_BYTES = 64 * 1024; // 64KB
@@ -1620,13 +1648,7 @@ export async function reindexCollection(
     ...excludeDirs.map(d => `**/${d}/**`),
     ...(options?.ignorePatterns || []),
   ];
-  const allFiles: string[] = await fastGlob(splitGlobMask(globPattern), {
-    cwd: collectionPath,
-    onlyFiles: true,
-    followSymbolicLinks: false,
-    dot: false,
-    ignore: allIgnore,
-  });
+  const allFiles: string[] = await globMaskFiles(globPattern, collectionPath, allIgnore);
   // Filter hidden files/folders
   const files = allFiles.filter(file => {
     const parts = file.split("/");

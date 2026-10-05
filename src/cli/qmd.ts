@@ -1,6 +1,5 @@
 import { isBun, openDatabase } from "../db.js";
 import type { Database, SQLiteValue } from "../db.js";
-import fastGlob from "fast-glob";
 import { spawn as nodeSpawn } from "child_process";
 import { isQmdMcpPid, mcpDaemonStateFiles } from "./mcp-pid.js";
 import { embedLockPathForDb, tryAcquireEmbedLock, EMBED_LOCK_BUSY_MESSAGE } from "./embed-lock.js";
@@ -76,6 +75,7 @@ import {
   DEFAULT_QUERY_MODEL,
   DEFAULT_GLOB,
   splitGlobMask,
+  globMaskFiles,
   DEFAULT_MULTI_GET_MAX_BYTES,
   createStore,
   getDefaultDbPath,
@@ -1924,13 +1924,7 @@ async function indexFiles(pwd?: string, globPattern: string = DEFAULT_GLOB, coll
     ...excludeDirs.map(d => `**/${d}/**`),
     ...(ignorePatterns || []),
   ];
-  const allFiles: string[] = await fastGlob(splitGlobMask(globPattern), {
-    cwd: resolvedPwd,
-    onlyFiles: true,
-    followSymbolicLinks: false,
-    dot: false,
-    ignore: allIgnore,
-  });
+  const allFiles: string[] = await globMaskFiles(globPattern, resolvedPwd, allIgnore);
   // Filter hidden files/folders (dot: false handles top-level but not nested)
   const files = allFiles.filter(file => {
     const parts = file.split("/");
