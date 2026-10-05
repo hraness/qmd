@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.8.3-hraness.1] - 2026-10-05
+
 ### Maintenance
 
 - Upgrade Vitest to 4.1.11 with matching Node and Bun lockfiles (#18).
