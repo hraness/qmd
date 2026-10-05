@@ -2557,9 +2557,9 @@ describe("mcp http daemon", () => {
     return proc;
   }
 
-  /** Wait for HTTP server to become ready. The daemon child cold-starts
-   * `bun --import tsx` plus the full module graph, which can exceed 5s on a
-   * loaded shared CI runner; keep the window generous. */
+  /** Wait for HTTP server to become ready. The daemon child cold-starts the
+   * full module graph, which can exceed 5s on a loaded shared CI runner;
+   * keep the window generous. */
   async function waitForServer(
     port: number,
     timeoutMs = 20000,

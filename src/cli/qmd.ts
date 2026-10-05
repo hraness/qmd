@@ -4784,7 +4784,11 @@ if (isMain) {
           const selfPath = fileURLToPath(import.meta.url);
           const indexArgs = cli.values.index ? ["--index", String(cli.values.index)] : [];
           const hostArgs = host ? ["--host", host] : [];
-          const spawnArgs = selfPath.endsWith(".ts")
+          // Under Bun a .ts entrypoint runs natively — routing the child
+          // through tsx would pay an unnecessary compile pass. tsx is only
+          // needed for .ts source under Node.
+          const isBun = typeof (process.versions as { bun?: string }).bun === "string";
+          const spawnArgs = selfPath.endsWith(".ts") && !isBun
             ? ["--import", pathJoin(dirname(selfPath), "..", "..", "node_modules", "tsx", "dist", "esm", "index.mjs"), selfPath, ...indexArgs, "mcp", "--http", "--port", String(port), ...hostArgs]
             : [selfPath, ...indexArgs, "mcp", "--http", "--port", String(port), ...hostArgs];
           const child = nodeSpawn(process.execPath, spawnArgs, {
