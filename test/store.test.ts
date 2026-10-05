@@ -2852,7 +2852,7 @@ describe("Reindex Collection", () => {
       expect(bodies).toHaveLength(1);
       expect(bodies[0]!.body).toContain("safe");
       expect(bodies.map(b => b.body).join("")).not.toContain(marker);
-      // fast-glob + onlyFiles may omit the symlink entirely; if it is listed,
+      // the glob engine + onlyFiles may omit the symlink entirely; if it is listed,
       // containment must skip it rather than ingest the target.
       if (result.skippedFiles.length > 0) {
         expect(result.skippedFiles.some(s => s.code === "OUTSIDE_COLLECTION")).toBe(true);

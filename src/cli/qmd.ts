@@ -1,6 +1,5 @@
 import { isBun, openDatabase } from "../db.js";
 import type { Database, SQLiteValue } from "../db.js";
-import fastGlob from "fast-glob";
 import { spawn as nodeSpawn } from "child_process";
 import { isQmdMcpPid, mcpDaemonStateFiles } from "./mcp-pid.js";
 import { embedLockPathForDb, tryAcquireEmbedLock, EMBED_LOCK_BUSY_MESSAGE } from "./embed-lock.js";
@@ -76,6 +75,7 @@ import {
   DEFAULT_QUERY_MODEL,
   DEFAULT_GLOB,
   splitGlobMask,
+  globMaskFiles,
   DEFAULT_MULTI_GET_MAX_BYTES,
   createStore,
   getDefaultDbPath,
@@ -1924,13 +1924,7 @@ async function indexFiles(pwd?: string, globPattern: string = DEFAULT_GLOB, coll
     ...excludeDirs.map(d => `**/${d}/**`),
     ...(ignorePatterns || []),
   ];
-  const allFiles: string[] = await fastGlob(splitGlobMask(globPattern), {
-    cwd: resolvedPwd,
-    onlyFiles: true,
-    followSymbolicLinks: false,
-    dot: false,
-    ignore: allIgnore,
-  });
+  const allFiles: string[] = await globMaskFiles(globPattern, resolvedPwd, allIgnore);
   // Filter hidden files/folders (dot: false handles top-level but not nested)
   const files = allFiles.filter(file => {
     const parts = file.split("/");
@@ -4790,7 +4784,11 @@ if (isMain) {
           const selfPath = fileURLToPath(import.meta.url);
           const indexArgs = cli.values.index ? ["--index", String(cli.values.index)] : [];
           const hostArgs = host ? ["--host", host] : [];
-          const spawnArgs = selfPath.endsWith(".ts")
+          // Under Bun a .ts entrypoint runs natively — routing the child
+          // through tsx would pay an unnecessary compile pass. tsx is only
+          // needed for .ts source under Node.
+          const isBun = typeof (process.versions as { bun?: string }).bun === "string";
+          const spawnArgs = selfPath.endsWith(".ts") && !isBun
             ? ["--import", pathJoin(dirname(selfPath), "..", "..", "node_modules", "tsx", "dist", "esm", "index.mjs"), selfPath, ...indexArgs, "mcp", "--http", "--port", String(port), ...hostArgs]
             : [selfPath, ...indexArgs, "mcp", "--http", "--port", String(port), ...hostArgs];
           const child = nodeSpawn(process.execPath, spawnArgs, {
