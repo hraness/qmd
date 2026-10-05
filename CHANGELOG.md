@@ -22,6 +22,10 @@
   commit, run with explicit read-only permissions without retained checkout
   credentials, and reject mutable or dynamic action references. Repository KB
   checks use the immutable 0.15.2 tool release.
+- `fast-glob` is replaced by `tinyglobby`, removing the vulnerable `braces`
+  chain from file-mask globbing (#37).
+- The finetuning environment's `urllib3` floor rises to 2.8.0 and `accelerate`
+  to 1.15.0, closing their flagged advisories (#37).
 
 ### Fixed
 
