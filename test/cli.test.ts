@@ -2557,8 +2557,14 @@ describe("mcp http daemon", () => {
     return proc;
   }
 
-  /** Wait for HTTP server to become ready */
-  async function waitForServer(port: number, timeoutMs = 5000): Promise<boolean> {
+  /** Wait for HTTP server to become ready. The daemon child cold-starts
+   * `bun --import tsx` plus the full module graph, which can exceed 5s on a
+   * loaded shared CI runner; keep the window generous. */
+  async function waitForServer(
+    port: number,
+    timeoutMs = 20000,
+    logDir = join(daemonCacheDir, "qmd"),
+  ): Promise<boolean> {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       try {
@@ -2567,13 +2573,19 @@ describe("mcp http daemon", () => {
       } catch { /* not ready yet */ }
       await sleep(200);
     }
-    // Diagnostic: on timeout, surface the daemon child logs so CI failures are
-    // debuggable without reproducing the runner environment locally.
+    // Diagnostic: on timeout, surface the daemon child logs and pid liveness so
+    // CI failures are debuggable without reproducing the runner environment.
     try {
-      const logs = readdirSync(join(daemonCacheDir, "qmd"))
-        .filter(f => f.startsWith("mcp") && f.endsWith(".log"));
-      for (const f of logs) {
-        console.log(`--- ${f} ---\n${readFileSync(join(daemonCacheDir, "qmd", f), "utf-8")}`);
+      const files = readdirSync(logDir);
+      for (const f of files.filter(f => f.startsWith("mcp") && f.endsWith(".pid"))) {
+        try {
+          const pid = parseInt(readFileSync(join(logDir, f), "utf-8").trim());
+          process.kill(pid, 0);
+          console.log(`--- ${f}: pid ${pid} still alive ---`);
+        } catch { console.log(`--- ${f}: pid dead ---`); }
+      }
+      for (const f of files.filter(f => f.startsWith("mcp") && f.endsWith(".log"))) {
+        console.log(`--- ${f} ---\n${readFileSync(join(logDir, f), "utf-8")}`);
       }
     } catch { /* no logs */ }
     return false;
@@ -2680,7 +2692,7 @@ describe("mcp http daemon", () => {
     });
 
     try {
-      const ready = await waitForServer(port);
+      const ready = await waitForServer(port, 20000, join(customCacheDir, "qmd"));
       expect(ready).toBe(true);
 
       const res = await fetch(`http://localhost:${port}/query`, {
@@ -2697,7 +2709,7 @@ describe("mcp http daemon", () => {
       proc.kill("SIGTERM");
       await closed;
     }
-  }, 10000);
+  }, 30000);
 
   test("daemon HTTP server honors --index, scopes pidfile, and queries the named store (#772)", async () => {
     const customIndex = "mcp-daemon-alt-index";
@@ -2757,7 +2769,7 @@ describe("mcp http daemon", () => {
     spawnedPids.push(pid);
 
     try {
-      const ready = await waitForServer(port);
+      const ready = await waitForServer(port, 20000, join(customCacheDir, "qmd"));
       expect(ready).toBe(true);
 
       const res = await fetch(`http://localhost:${port}/query`, {
@@ -2789,7 +2801,7 @@ describe("mcp http daemon", () => {
       await sleep(300);
       try { unlinkSync(namedPidPath); } catch {}
     }
-  }, 15000);
+  }, 30000);
 
   test("named-index daemon does not collide with the default daemon pidfile (#772)", async () => {
     const portDefault = randomPort();
