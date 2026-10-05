@@ -7,7 +7,7 @@
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { chmod, copyFile, mkdtemp, rm, writeFile, mkdir } from "fs/promises";
-import { existsSync, lstatSync, readFileSync, symlinkSync, writeFileSync, unlinkSync } from "fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, symlinkSync, writeFileSync, unlinkSync } from "fs";
 import { tmpdir } from "os";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -2567,6 +2567,15 @@ describe("mcp http daemon", () => {
       } catch { /* not ready yet */ }
       await sleep(200);
     }
+    // Diagnostic: on timeout, surface the daemon child logs so CI failures are
+    // debuggable without reproducing the runner environment locally.
+    try {
+      const logs = readdirSync(join(daemonCacheDir, "qmd"))
+        .filter(f => f.startsWith("mcp") && f.endsWith(".log"));
+      for (const f of logs) {
+        console.log(`--- ${f} ---\n${readFileSync(join(daemonCacheDir, "qmd", f), "utf-8")}`);
+      }
+    } catch { /* no logs */ }
     return false;
   }
 

@@ -118,6 +118,5 @@
     "llm"
   ],
   "author": "Tobi Lutke <tobi@lutke.com>",
-  "license": "MIT",
-  "overrides": {}
+  "license": "MIT"
 }
