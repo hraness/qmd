@@ -92,6 +92,34 @@ function semanticActionReferences(
   return references.toSorted();
 }
 
+const dependencyAuditWorkflow = "./.github/workflows/dependency-audit.yml";
+
+function assertDependencyAuditJob(path: string, root: JsonObject): void {
+  const triggers = object(root.on, `${path} triggers`);
+  if (Object.keys(triggers).some(name => !["pull_request", "push", "schedule", "workflow_dispatch"].includes(name))) {
+    throw new TypeError(`${path} must not run on privileged triggers.`);
+  }
+  const jobs = object(root.jobs, `${path} jobs`);
+  if (Object.keys(jobs).length !== 1 || jobs.audit === undefined) {
+    throw new TypeError(`${path} must contain only the audit job.`);
+  }
+  const job = object(jobs.audit, `${path} job audit`);
+  const permissions = object(job.permissions, `${path} job audit permissions`);
+  if (Object.keys(permissions).length !== 2 || permissions.contents !== "read" || permissions.issues !== "write") {
+    throw new TypeError(`${path} job audit must declare exactly contents: read and issues: write.`);
+  }
+  if (!Array.isArray(job.steps) || job.steps.length !== 2) {
+    throw new TypeError(`${path} job audit must check out the repository and run only the shared audit.`);
+  }
+  const [checkout, audit] = job.steps.map((step, index) => object(step, `${path} job audit step ${String(index)}`));
+  if (typeof checkout!.uses !== "string" || !checkout!.uses.startsWith("actions/checkout@") || checkout!.run !== undefined) {
+    throw new TypeError(`${path} job audit must first check out the repository.`);
+  }
+  if (typeof audit!.uses !== "string" || !audit!.uses.startsWith("hraness/.github/actions/dependency-audit@") || audit!.run !== undefined) {
+    throw new TypeError(`${path} job audit may only run the shared hraness/.github dependency audit.`);
+  }
+}
+
 function assertWorkflowCredentialBoundary(
   workflows: ReadonlyMap<string, string>,
 ): void {
@@ -107,7 +135,9 @@ function assertWorkflowCredentialBoundary(
     const jobs = object(root.jobs, `${path} jobs`);
     for (const [jobName, jobValue] of Object.entries(jobs)) {
       const job = object(jobValue, `${path} job ${jobName}`);
-      if (job.permissions !== undefined) {
+      if (path === dependencyAuditWorkflow) {
+        assertDependencyAuditJob(path, root);
+      } else if (job.permissions !== undefined) {
         throw new TypeError(`${path} job ${jobName} must not override workflow permissions.`);
       }
       if (!Array.isArray(job.steps)) continue;
@@ -156,12 +186,32 @@ describe("GitHub workflow action supply chain", () => {
       "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
       "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
       "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+      "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
       "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
       "cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24",
+      "hraness/.github/actions/dependency-audit@021adfa02636b4950e59b09e38b2dd1fd82b1663",
       "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6",
       "pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
     ]);
     expect(() => assertWorkflowCredentialBoundary(workflows)).not.toThrow();
+  });
+
+  test("allows issues: write only for the exact shared dependency audit job", () => {
+    const source = repositoryWorkflows().get(dependencyAuditWorkflow);
+    if (source === undefined) throw new TypeError("Dependency audit workflow is unavailable.");
+    const audit = (text: string) => new Map([[dependencyAuditWorkflow, text]]);
+    expect(() => assertWorkflowCredentialBoundary(audit(source))).not.toThrow();
+    for (const [from, to, message] of [
+      ["      issues: write\n", "      issues: write\n      pull-requests: write\n", /exactly contents: read and issues: write/u],
+      ["  workflow_dispatch:\n", "  workflow_dispatch:\n  pull_request_target:\n", /privileged triggers/u],
+      ["      - uses: hraness/.github/actions/dependency-audit@", "      - run: echo unreviewed\n      - uses: hraness/.github/actions/dependency-audit@", /run only the shared audit/u],
+      ["      - uses: hraness/.github/actions/dependency-audit@", "      - uses: someone/else/actions/dependency-audit@", /only run the shared hraness\/\.github dependency audit/u],
+    ] as const) {
+      expect(source).toContain(from);
+      expect(() => assertWorkflowCredentialBoundary(audit(source.replace(from, to)))).toThrow(message);
+    }
+    expect(() => assertWorkflowCredentialBoundary(new Map([["./.github/workflows/copy.yml", source]])))
+      .toThrow(/must not override workflow permissions/u);
   });
 
   test("rejects mutable, dynamic, and non-string semantic action references", () => {
